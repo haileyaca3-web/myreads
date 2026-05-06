@@ -68,6 +68,12 @@ nav button:hover:not(.active){color:rgba(255,255,255,0.85);}
 .b-reading{background:#e8f0fb;color:#1a4d99;}
 .b-done{background:#e6f4ea;color:#2e6b40;}
 .empty{text-align:center;padding:4rem;color:var(--text3);font-size:16px;grid-column:1/-1;}
+.camera-wrap{display:flex;align-items:center;gap:12px;background:var(--white);border:1.5px dashed var(--border2);border-radius:12px;padding:14px 20px;cursor:pointer;margin-bottom:1.75rem;transition:all 0.15s;}
+.camera-wrap:hover{border-color:var(--navy);background:var(--off);}
+.camera-icon{font-size:22px;}
+.camera-label{font-size:15px;font-weight:600;color:var(--text2);}
+.recognizing{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:1.75rem;text-align:center;}
+.recognizing-inner{font-size:14px;color:var(--text3);font-weight:600;}
 
 /* Modal */
 .overlay{position:fixed;inset:0;background:rgba(10,22,40,0.55);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:1.25rem;overflow-y:auto;}
@@ -178,14 +184,17 @@ nav button:hover:not(.active){color:rgba(255,255,255,0.85);}
 
 <!-- 책꽂이 -->
 <div class="page active" id="page-shelf">
-  <div class="search-wrap">
-    <input id="searchInput" type="text" placeholder="책 제목 또는 저자 검색..." onkeydown="if(event.key==='Enter')doSearch()"/>
-    <button onclick="doSearch()">검색</button>
+  <label class="camera-wrap" onclick="document.getElementById('cameraInput').click()">
+    <span class="camera-icon">📷</span>
+    <span class="camera-label">책 표지 사진으로 추가하기</span>
+    <input type="file" accept="image/*" id="cameraInput" onchange="recognizeBook(event)" style="display:none;">
+  </label>
+  <div class="recognizing" id="recognizing" style="display:none;">
+    <div class="recognizing-inner">Claude가 책 표지를 인식하는 중...</div>
   </div>
-  <div class="search-results" id="searchResults"></div>
   <div class="shelf-label">내 책꽂이</div>
   <div class="bookshelf" id="bookshelf">
-    <div class="empty" id="emptyMsg">책을 검색해서 추가해보세요</div>
+    <div class="empty" id="emptyMsg">책 표지를 찍어서 추가해보세요 📷</div>
   </div>
 </div>
 
@@ -596,6 +605,68 @@ function copyChat() {
     btn.textContent = '복사됐어요'; btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '대화 복사'; btn.classList.remove('copied'); }, 2000);
   }).catch(() => alert('복사 실패.'));
+}
+
+// ── 책 표지 인식 ──────────────────────────────
+async function recognizeBook(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const apiKey = getApiKey();
+  if (!apiKey) { alert('API 키를 먼저 입력해주세요. (이야기 탭 상단)'); return; }
+
+  document.getElementById('recognizing').style.display = 'block';
+
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const base64 = ev.target.result.split(',')[1];
+    const mediaType = file.type || 'image/jpeg';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-allow-browser': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 300,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+              { type: 'text', text: '이 책 표지에서 책 제목과 저자를 읽어주세요. 반드시 JSON 형식으로만 답해주세요: {"title":"책제목","author":"저자명"} 정보가 없으면 빈 문자열로 해주세요.' }
+            ]
+          }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.[0]?.text || '';
+      const match = text.match(/\{[\s\S]*?\}/);
+      if (match) {
+        const info = JSON.parse(match[0]);
+        if (info.title) {
+          const book = {
+            id: 'cam_' + Date.now(),
+            title: info.title,
+            author: info.author || '저자 미상',
+            coverUrl: ev.target.result
+          };
+          addBook(book);
+        } else {
+          alert('책 정보를 인식하지 못했어요. 다시 시도해보세요.');
+        }
+      } else {
+        alert('책 정보를 인식하지 못했어요. 다시 시도해보세요.');
+      }
+    } catch(err) {
+      alert('오류가 발생했어요: ' + err.message);
+    }
+    document.getElementById('recognizing').style.display = 'none';
+    document.getElementById('cameraInput').value = '';
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── 초기화 ────────────────────────────────────
