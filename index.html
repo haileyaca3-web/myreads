@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>myreads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0a1628;--navy3:#1a3a6b;--accent:#2563c8;--gold:#c8a96e;
+  --white:#ffffff;--off:#f8f9fc;--border:#d4dde8;--border2:#c0ccd8;
+  --text:#0a1628;--text2:#4a5568;--text3:#8a9bb0;
+  --ff:'Nunito',sans-serif;
+}
+body{font-family:var(--ff);background:var(--off);color:var(--text);min-height:100vh;}
+.app{display:flex;flex-direction:column;height:100vh;position:relative;background:var(--off);}
+
+/* Nav */
+nav{background:var(--navy);display:flex;align-items:center;padding:0 1.5rem;height:56px;flex-shrink:0;}
+.logo{font-size:20px;font-weight:700;color:var(--white);margin-right:auto;}
+.logo span{color:var(--gold);}
+nav button{background:none;border:none;cursor:pointer;padding:0 1.25rem;height:56px;font-size:15px;font-weight:600;color:rgba(255,255,255,0.5);border-bottom:2px solid transparent;transition:all 0.15s;font-family:var(--ff);}
+nav button.active{color:var(--white);border-bottom-color:var(--gold);}
+nav button:hover:not(.active){color:rgba(255,255,255,0.85);}
+
+/* Pages */
+.page{display:none;flex:1;overflow-y:auto;padding:2rem;}
+.page.active{display:block;}
+
+/* API Key Banner */
+.api-banner{background:#fff8e6;border:1px solid var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.api-banner span{font-size:14px;color:#7a5c00;flex:1;}
+.api-input{flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--ff);outline:none;}
+.api-input:focus{border-color:var(--accent);}
+.api-save-btn{padding:8px 16px;background:var(--navy);color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;font-family:var(--ff);}
+
+/* Search */
+.search-wrap{display:flex;gap:10px;margin-bottom:1.75rem;}
+.search-wrap input{flex:1;padding:12px 16px;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--text);font-size:15px;font-family:var(--ff);outline:none;transition:border 0.15s;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input::placeholder{color:var(--text3);}
+.search-wrap button{padding:12px 24px;background:var(--navy);color:var(--white);border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:700;font-family:var(--ff);transition:background 0.15s;}
+.search-wrap button:hover{background:var(--navy3);}
+.search-results{background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:1.5rem;overflow:hidden;box-shadow:0 4px 20px rgba(10,22,40,0.08);display:none;}
+.sr-item{display:flex;gap:14px;padding:13px 18px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;align-items:center;}
+.sr-item:last-child{border-bottom:none;}
+.sr-item:hover{background:var(--off);}
+.sr-cover{width:36px;height:52px;border-radius:4px;object-fit:cover;background:#e8edf4;flex-shrink:0;}
+.sr-title{font-size:15px;font-weight:700;color:var(--text);}
+.sr-author{font-size:13px;color:var(--text2);margin-top:3px;}
+.sr-add{font-size:13px;padding:5px 12px;border:1px solid var(--accent);color:var(--accent);border-radius:7px;background:none;cursor:pointer;font-family:var(--ff);font-weight:700;transition:all 0.15s;}
+.sr-add:hover{background:var(--accent);color:var(--white);}
+
+/* Shelf */
+.shelf-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.1rem;}
+.bookshelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1.1rem;}
+.book-card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all 0.18s;}
+.book-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(10,22,40,0.12);border-color:var(--border2);}
+.book-cover{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:36px;background:#e8edf4;}
+.book-cover img{width:100%;height:100%;object-fit:cover;}
+.book-info{padding:11px 12px;}
+.book-title{font-size:13px;font-weight:700;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.book-author{font-size:12px;color:var(--text3);margin-top:4px;}
+.book-badge{display:inline-block;margin-top:6px;font-size:11px;padding:3px 9px;border-radius:12px;font-weight:700;}
+.b-want{background:#eef2f8;color:#4a6080;}
+.b-reading{background:#e8f0fb;color:#1a4d99;}
+.b-done{background:#e6f4ea;color:#2e6b40;}
+.empty{text-align:center;padding:4rem;color:var(--text3);font-size:16px;grid-column:1/-1;}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(10,22,40,0.55);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:1.25rem;overflow-y:auto;}
+.overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:16px;border:1px solid var(--border);width:100%;max-width:600px;overflow:hidden;box-shadow:0 20px 60px rgba(10,22,40,0.2);margin:auto;}
+.modal-hd{display:flex;gap:1.1rem;padding:1.4rem 1.6rem;background:var(--navy);align-items:flex-start;}
+.modal-cov{width:68px;height:98px;border-radius:6px;flex-shrink:0;background:#1a3a6b;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden;}
+.modal-cov img{width:100%;height:100%;object-fit:cover;}
+.modal-meta{flex:1;}
+.modal-ttl{font-size:18px;font-weight:700;color:var(--white);line-height:1.3;}
+.modal-aut{font-size:14px;color:rgba(255,255,255,0.6);margin-top:5px;}
+.modal-status{margin-top:11px;}
+.modal-status select{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;color:var(--white);font-size:13px;padding:5px 10px;cursor:pointer;outline:none;font-family:var(--ff);font-weight:600;}
+.modal-status select option{background:var(--navy);color:var(--white);}
+.modal-x{background:none;border:none;cursor:pointer;font-size:20px;color:rgba(255,255,255,0.5);line-height:1;padding:0;align-self:flex-start;transition:color 0.1s;font-family:var(--ff);}
+.modal-x:hover{color:var(--white);}
+.m-tabs{display:flex;background:var(--off);border-bottom:1px solid var(--border);}
+.m-tab{flex:1;background:none;border:none;border-bottom:2.5px solid transparent;padding:0.85rem;font-size:15px;font-weight:700;cursor:pointer;color:var(--text3);transition:all 0.15s;font-family:var(--ff);}
+.m-tab.active{color:var(--navy);border-bottom-color:var(--navy);}
+.m-body{padding:1.4rem 1.6rem;max-height:60vh;overflow-y:auto;}
+
+/* Calendar */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;}
+.cal-nav{background:none;border:1px solid var(--border);border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.cal-nav:hover{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.cal-month{font-size:17px;font-weight:700;color:var(--text);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-dow{text-align:center;font-size:12px;font-weight:700;color:var(--text3);padding:5px 0;}
+.cal-day{text-align:center;padding:6px 2px;font-size:14px;cursor:pointer;border-radius:7px;transition:all 0.15s;color:var(--text);font-weight:500;}
+.cal-day:hover{background:var(--off);}
+.cal-day.empty{cursor:default;pointer-events:none;}
+.cal-day.has-entry{background:#e8f0fb;color:var(--accent);font-weight:700;}
+.cal-day.selected{background:var(--navy);color:var(--white);font-weight:700;}
+.cal-day.today{color:var(--accent);font-weight:700;}
+
+/* Day detail */
+.day-detail{margin-top:1.4rem;border-top:1px solid var(--border);padding-top:1.4rem;display:none;}
+.day-detail.open{display:block;}
+.day-detail-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;}
+.day-date-lbl{font-size:16px;font-weight:700;color:var(--navy);}
+.close-detail{background:none;border:none;font-size:13px;color:var(--text3);cursor:pointer;font-family:var(--ff);}
+.photos-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.photo-thumb{width:78px;height:78px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer;}
+.photo-add-btn{width:78px;height:78px;border:1.5px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;background:none;color:var(--text3);font-size:22px;}
+.photo-add-btn:hover{border-color:var(--navy);color:var(--navy);background:var(--off);}
+.photo-add-btn input{display:none;}
+.sentence-list{margin-bottom:12px;}
+.sentence-item{background:var(--off);border-left:3px solid var(--navy);padding:10px 14px;margin-bottom:8px;border-radius:0 8px 8px 0;font-size:14px;line-height:1.65;color:var(--text2);position:relative;}
+.sentence-del{position:absolute;top:8px;right:10px;background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;}
+.sentence-input{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:var(--white);color:var(--text);font-size:14px;resize:vertical;min-height:70px;font-family:var(--ff);line-height:1.65;outline:none;transition:border 0.15s;}
+.sentence-input:focus{border-color:var(--accent);}
+.save-sentence-btn{margin-top:9px;padding:9px 20px;background:var(--navy);color:var(--white);border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;font-family:var(--ff);transition:background 0.15s;}
+.save-sentence-btn:hover{background:var(--navy3);}
+
+/* Review */
+.review-ta{width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--text);font-size:14px;resize:vertical;min-height:200px;font-family:var(--ff);line-height:1.8;outline:none;transition:border 0.15s;}
+.review-ta:focus{border-color:var(--accent);}
+.review-ta::placeholder{color:var(--text3);}
+.save-review-btn{margin-top:12px;padding:10px 24px;background:var(--navy);color:var(--white);border:none;border-radius:8px;cursor:pointer;font-size:15px;font-weight:700;font-family:var(--ff);transition:background 0.15s;}
+.save-review-btn:hover{background:var(--navy3);}
+.saved-ok{font-size:13px;color:#2e6b40;opacity:0;transition:opacity 0.3s;margin-left:10px;}
+
+/* Discuss */
+.discuss-hd{display:flex;align-items:flex-end;gap:12px;margin-bottom:1.4rem;}
+.book-sel-wrap{flex:1;}
+.book-sel-lbl{font-size:12px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;letter-spacing:0.06em;text-transform:uppercase;}
+.book-sel-wrap select{width:100%;padding:11px 15px;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--text);font-size:15px;font-family:var(--ff);font-weight:600;outline:none;cursor:pointer;}
+.copy-btn{padding:11px 18px;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--text2);cursor:pointer;font-size:14px;font-weight:700;font-family:var(--ff);transition:all 0.15s;white-space:nowrap;}
+.copy-btn:hover{background:var(--off);}
+.copy-btn.copied{border-color:#2e6b40;color:#2e6b40;background:#e6f4ea;}
+.quick-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.4rem;}
+.q-btn{background:none;border:1px solid var(--border);border-radius:22px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);font-family:var(--ff);transition:all 0.15s;}
+.q-btn:hover{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.chat-win{background:var(--white);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;height:calc(100vh - 320px);min-height:300px;overflow:hidden;}
+.chat-msgs{flex:1;overflow-y:auto;padding:1.4rem;display:flex;flex-direction:column;gap:16px;}
+.chat-empty{text-align:center;color:var(--text3);font-size:15px;padding:3rem 0;}
+.cmsg{max-width:78%;}
+.cmsg.user{align-self:flex-end;}
+.cmsg.claude{align-self:flex-start;}
+.cmsg-name{font-size:12px;font-weight:700;color:var(--text3);margin-bottom:4px;}
+.cmsg-bubble{padding:12px 16px;font-size:14px;line-height:1.7;}
+.cmsg.user .cmsg-bubble{background:var(--navy);color:var(--white);border-radius:14px 14px 3px 14px;}
+.cmsg.claude .cmsg-bubble{background:var(--off);color:var(--text);border:1px solid var(--border);border-radius:14px 14px 14px 3px;}
+.chat-in{display:flex;gap:10px;padding:14px;border-top:1px solid var(--border);background:var(--off);}
+.chat-in input{flex:1;padding:11px 15px;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--text);font-size:14px;font-family:var(--ff);outline:none;transition:border 0.15s;}
+.chat-in input:focus{border-color:var(--accent);}
+.chat-in input::placeholder{color:var(--text3);}
+.chat-send{padding:11px 22px;background:var(--navy);color:var(--white);border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;font-family:var(--ff);transition:background 0.15s;}
+.chat-send:hover:not(:disabled){background:var(--navy3);}
+.chat-send:disabled{opacity:0.4;cursor:not-allowed;}
+.thinking{font-style:italic;color:var(--text3);font-size:13px;}
+
+/* Lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(10,22,40,0.88);z-index:500;display:none;align-items:center;justify-content:center;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:90%;max-height:90%;border-radius:10px;object-fit:contain;}
+.lightbox-close{position:absolute;top:18px;right:22px;background:none;border:none;color:white;font-size:24px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<nav>
+  <div class="logo">my<span>reads</span></div>
+  <button class="active" onclick="goTo('shelf',this)">책꽂이</button>
+  <button onclick="goTo('discuss',this)">이야기</button>
+</nav>
+
+<!-- 책꽂이 -->
+<div class="page active" id="page-shelf">
+  <div class="search-wrap">
+    <input id="searchInput" type="text" placeholder="책 제목 또는 저자 검색..." onkeydown="if(event.key==='Enter')doSearch()"/>
+    <button onclick="doSearch()">검색</button>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+  <div class="shelf-label">내 책꽂이</div>
+  <div class="bookshelf" id="bookshelf">
+    <div class="empty" id="emptyMsg">책을 검색해서 추가해보세요</div>
+  </div>
+</div>
+
+<!-- 이야기 -->
+<div class="page" id="page-discuss">
+  <div class="api-banner" id="apiBanner">
+    <span>💡 Claude와 대화하려면 Anthropic API 키가 필요해요</span>
+    <input class="api-input" id="apiKeyInput" type="password" placeholder="sk-ant-...">
+    <button class="api-save-btn" onclick="saveApiKey()">저장</button>
+  </div>
+  <div class="discuss-hd">
+    <div class="book-sel-wrap">
+      <span class="book-sel-lbl">책 선택</span>
+      <select id="bookSel" onchange="onBookSel()"><option value="">— 책을 선택하세요 —</option></select>
+    </div>
+    <button class="copy-btn" id="copyBtn" onclick="copyChat()">대화 복사</button>
+  </div>
+  <div class="quick-row" id="quickRow" style="display:none"></div>
+  <div class="chat-win">
+    <div class="chat-msgs" id="chatMsgs"><div class="chat-empty">책을 선택하면 Claude와 이야기를 시작할 수 있어요.</div></div>
+    <div class="chat-in">
+      <input id="chatInput" placeholder="메시지를 입력하세요..." onkeydown="if(event.key==='Enter')sendMsg()" disabled/>
+      <button class="chat-send" id="chatSend" onclick="sendMsg()" disabled>전송</button>
+    </div>
+  </div>
+</div>
+
+<!-- 책 상세 모달 -->
+<div class="overlay" id="overlay" onclick="onOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-cov" id="mCov">📖</div>
+      <div class="modal-meta">
+        <div class="modal-ttl" id="mTitle"></div>
+        <div class="modal-aut" id="mAuthor"></div>
+        <div class="modal-status">
+          <select id="mStatus" onchange="saveStatus()">
+            <option value="want">읽고싶음</option>
+            <option value="reading">읽는 중</option>
+            <option value="done">완독</option>
+          </select>
+        </div>
+      </div>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="m-tabs">
+      <button class="m-tab active" onclick="switchTab('cal')">읽은 날짜</button>
+      <button class="m-tab" onclick="switchTab('review')">Review</button>
+    </div>
+    <div class="m-body">
+      <div id="tab-cal">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
+          <div class="cal-month" id="calMonth"></div>
+          <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="day-detail" id="dayDetail">
+          <div class="day-detail-hd">
+            <div class="day-date-lbl" id="dayLabel"></div>
+            <button class="close-detail" onclick="closeDayDetail()">닫기</button>
+          </div>
+          <div class="photos-grid" id="photosGrid"></div>
+          <div class="sentence-list" id="sentenceList"></div>
+          <textarea class="sentence-input" id="sentenceInput" placeholder="인상 깊은 구절을 적어보세요..."></textarea>
+          <button class="save-sentence-btn" onclick="saveSentence()">저장</button>
+        </div>
+      </div>
+      <div id="tab-review" style="display:none">
+        <textarea class="review-ta" id="reviewTa" placeholder="이 책을 읽고 느낀 점, 배운 점, 기억하고 싶은 것들을 자유롭게 적어보세요..."></textarea>
+        <div>
+          <button class="save-review-btn" onclick="saveReview()">저장</button>
+          <span class="saved-ok" id="savedOk">저장됐어요</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 사진 크게 보기 -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="">
+</div>
+
+<script>
+// ── 데이터 ──────────────────────────────────
+const SK = 'myreads_books';
+const CK = 'myreads_chats';
+let books = [], chats = {}, curBook = null;
+let calYear = 0, calMonth = 0, selDay = null;
+let chatHistory = [], chatBookId = null;
+
+function loadData() {
+  try { books = JSON.parse(localStorage.getItem(SK)) || []; } catch(e) { books = []; }
+  try { chats = JSON.parse(localStorage.getItem(CK)) || {}; } catch(e) { chats = {}; }
+  renderShelf();
+  renderBookSel();
+}
+function saveData() { localStorage.setItem(SK, JSON.stringify(books)); }
+function saveChats() { localStorage.setItem(CK, JSON.stringify(chats)); }
+
+// ── API Key ──────────────────────────────────
+function getApiKey() { return localStorage.getItem('myreads_apikey') || ''; }
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('API 키를 입력해주세요.'); return; }
+  localStorage.setItem('myreads_apikey', key);
+  document.getElementById('apiBanner').style.display = 'none';
+  alert('저장됐어요!');
+}
+function initApiBanner() {
+  if (getApiKey()) document.getElementById('apiBanner').style.display = 'none';
+}
+
+// ── 네비게이션 ────────────────────────────────
+function goTo(p, btn) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  btn.classList.add('active');
+  if (p === 'discuss') renderBookSel();
+}
+
+// ── 책 검색 ───────────────────────────────────
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+  const el = document.getElementById('searchResults');
+  el.style.display = 'block';
+  el.innerHTML = '<div style="padding:14px 18px;font-size:15px;color:#8a9bb0;">검색 중...</div>';
+  try {
+    const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=5`);
+    const d = await r.json();
+    if (!d.docs || !d.docs.length) {
+      el.innerHTML = '<div style="padding:14px 18px;font-size:15px;color:#8a9bb0;">결과가 없어요.</div>';
+      return;
+    }
+    el.innerHTML = d.docs.slice(0, 5).map(doc => {
+      const cov = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-S.jpg` : null;
+      const bd = JSON.stringify({
+        id: String(doc.cover_i || doc.key || Date.now()),
+        title: doc.title || '제목 없음',
+        author: doc.author_name ? doc.author_name[0] : '저자 미상',
+        coverId: doc.cover_i || null
+      }).replace(/"/g, '&quot;');
+      return `<div class="sr-item" onclick='addBook(${bd})'>
+        ${cov ? `<img src="${cov}" class="sr-cover">` : '<div class="sr-cover" style="display:flex;align-items:center;justify-content:center;font-size:20px;">📖</div>'}
+        <div style="flex:1"><div class="sr-title">${doc.title}</div><div class="sr-author">${doc.author_name ? doc.author_name[0] : '저자 미상'}</div></div>
+        <button class="sr-add">추가</button>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:14px 18px;font-size:15px;color:#8a9bb0;">검색 실패. 잠시 후 다시 시도해주세요.</div>';
+  }
+}
+
+// ── 책 추가 ───────────────────────────────────
+function addBook(b) {
+  if (books.find(x => x.id === b.id)) { alert('이미 책꽂이에 있어요!'); return; }
+  books.push({ ...b, status: 'want', days: {}, review: '' });
+  saveData(); renderShelf(); renderBookSel();
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('searchInput').value = '';
+}
+
+// ── 책꽂이 렌더 ──────────────────────────────
+function renderShelf() {
+  const sh = document.getElementById('bookshelf');
+  const em = document.getElementById('emptyMsg');
+  if (!books.length) { em.style.display = 'block'; sh.innerHTML = ''; sh.appendChild(em); return; }
+  em.style.display = 'none';
+  sh.innerHTML = books.map(b => {
+    const lbl = { want: '읽고싶음', reading: '읽는 중', done: '완독' }[b.status];
+    const cls = { want: 'b-want', reading: 'b-reading', done: 'b-done' }[b.status];
+    const cov = b.coverId
+      ? `<img src="https://covers.openlibrary.org/b/id/${b.coverId}-M.jpg" style="width:100%;height:100%;object-fit:cover;">`
+      : '<span style="font-size:36px;">📖</span>';
+    return `<div class="book-card" onclick="openBook('${b.id}')">
+      <div class="book-cover">${cov}</div>
+      <div class="book-info">
+        <div class="book-title">${b.title}</div>
+        <div class="book-author">${b.author}</div>
+        <span class="book-badge ${cls}">${lbl}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 책 상세 모달 ─────────────────────────────
+function openBook(id) {
+  curBook = books.find(b => b.id === id);
+  if (!curBook) return;
+  if (!curBook.days) curBook.days = {};
+  document.getElementById('mTitle').textContent = curBook.title;
+  document.getElementById('mAuthor').textContent = curBook.author;
+  document.getElementById('mStatus').value = curBook.status;
+  const cov = document.getElementById('mCov');
+  cov.innerHTML = curBook.coverId
+    ? `<img src="https://covers.openlibrary.org/b/id/${curBook.coverId}-M.jpg" style="width:68px;height:98px;object-fit:cover;border-radius:6px;">`
+    : '📖';
+  const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth(); selDay = null;
+  switchTab('cal');
+  document.getElementById('overlay').classList.add('open');
+}
+function onOverlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+function closeModal() { document.getElementById('overlay').classList.remove('open'); curBook = null; selDay = null; }
+function saveStatus() {
+  if (!curBook) return;
+  curBook.status = document.getElementById('mStatus').value;
+  saveData(); renderShelf();
+}
+function switchTab(t) {
+  document.getElementById('tab-cal').style.display = t === 'cal' ? 'block' : 'none';
+  document.getElementById('tab-review').style.display = t === 'review' ? 'block' : 'none';
+  document.querySelectorAll('.m-tab').forEach((b, i) => b.classList.toggle('active', ['cal', 'review'][i] === t));
+  if (t === 'cal') renderCal();
+  if (t === 'review') document.getElementById('reviewTa').value = curBook.review || '';
+}
+
+// ── 달력 ─────────────────────────────────────
+function renderCal() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonth').textContent = `${months[calMonth]} ${calYear}`;
+  const grid = document.getElementById('calGrid');
+  let html = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const days = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date();
+  for (let i = 0; i < first; i++) html += `<div class="cal-day empty"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasEntry = curBook.days && curBook.days[key] &&
+      ((curBook.days[key].photos && curBook.days[key].photos.length) ||
+       (curBook.days[key].sentences && curBook.days[key].sentences.length));
+    const isSel = selDay === key;
+    const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
+    let cls = 'cal-day';
+    if (hasEntry) cls += ' has-entry';
+    if (isSel) cls += ' selected';
+    else if (isToday) cls += ' today';
+    html += `<div class="${cls}" onclick="selectDay('${key}')">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+function changeMonth(d) {
+  calMonth += d;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCal();
+}
+
+// ── 날짜 상세 ─────────────────────────────────
+function selectDay(key) {
+  selDay = key;
+  if (!curBook.days[key]) curBook.days[key] = { photos: [], sentences: [] };
+  renderCal();
+  document.getElementById('dayDetail').classList.add('open');
+  const d = new Date(key);
+  document.getElementById('dayLabel').textContent = d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+  renderDayPhotos(); renderDaySentences();
+  document.getElementById('sentenceInput').value = '';
+}
+function closeDayDetail() {
+  selDay = null;
+  document.getElementById('dayDetail').classList.remove('open');
+  renderCal();
+}
+function renderDayPhotos() {
+  if (!selDay) return;
+  const photos = curBook.days[selDay].photos || [];
+  const grid = document.getElementById('photosGrid');
+  grid.innerHTML = photos.map(p => `<img class="photo-thumb" src="${p}" onclick="openLightbox('${p}')">`).join('');
+  const lbl = document.createElement('label');
+  lbl.className = 'photo-add-btn';
+  lbl.innerHTML = `+<input type="file" accept="image/*" multiple onchange="handlePhotos(event)">`;
+  grid.appendChild(lbl);
+}
+function handlePhotos(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length || !selDay) return;
+  let loaded = 0;
+  files.forEach(file => {
+    const r = new FileReader();
+    r.onload = ev => {
+      curBook.days[selDay].photos.push(ev.target.result);
+      loaded++;
+      if (loaded === files.length) { saveData(); renderDayPhotos(); renderCal(); }
+    };
+    r.readAsDataURL(file);
+  });
+}
+function renderDaySentences() {
+  if (!selDay) return;
+  document.getElementById('sentenceList').innerHTML = (curBook.days[selDay].sentences || []).map((s, i) =>
+    `<div class="sentence-item">${s}<button class="sentence-del" onclick="delSentence(${i})">✕</button></div>`
+  ).join('');
+}
+function saveSentence() {
+  const txt = document.getElementById('sentenceInput').value.trim();
+  if (!txt || !selDay) return;
+  curBook.days[selDay].sentences.push(txt);
+  saveData(); renderDaySentences();
+  document.getElementById('sentenceInput').value = '';
+}
+function delSentence(i) { curBook.days[selDay].sentences.splice(i, 1); saveData(); renderDaySentences(); }
+
+// ── 독후감 ────────────────────────────────────
+function saveReview() {
+  curBook.review = document.getElementById('reviewTa').value;
+  saveData();
+  const ok = document.getElementById('savedOk');
+  ok.style.opacity = 1;
+  setTimeout(() => ok.style.opacity = 0, 2000);
+}
+
+// ── 라이트박스 ────────────────────────────────
+function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('lightbox').classList.add('open'); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ── 이야기 탭 ────────────────────────────────
+function renderBookSel() {
+  const sel = document.getElementById('bookSel');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— 책을 선택하세요 —</option>' +
+    books.map(b => `<option value="${b.id}">${b.title}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+function onBookSel() {
+  const id = document.getElementById('bookSel').value;
+  const ci = document.getElementById('chatInput');
+  const cs = document.getElementById('chatSend');
+  const qr = document.getElementById('quickRow');
+  if (!id) {
+    ci.disabled = true; cs.disabled = true; qr.style.display = 'none';
+    document.getElementById('chatMsgs').innerHTML = '<div class="chat-empty">책을 선택하면 Claude와 이야기를 시작할 수 있어요.</div>';
+    chatBookId = null; return;
+  }
+  chatBookId = id;
+  const book = books.find(b => b.id === id);
+  chatHistory = chats[id] || [];
+  ci.disabled = false; cs.disabled = false;
+  qr.style.display = 'flex';
+  qr.innerHTML = ['주제 추천해줘', '이 책의 핵심 메시지는?', '비슷한 책 추천해줘', '독후감 작성 도와줘']
+    .map(t => `<button class="q-btn" onclick="quickSend('${t}')">${t}</button>`).join('');
+  renderChat();
+  if (!chatHistory.length) addClaudeMsg(`"${book.title}"에 대해 이야기 나눠봐요. 어떤 부분이 가장 인상 깊었나요?`);
+}
+function renderChat() {
+  const el = document.getElementById('chatMsgs');
+  if (!chatHistory.length) { el.innerHTML = ''; return; }
+  el.innerHTML = chatHistory.map(m => `
+    <div class="cmsg ${m.role === 'assistant' ? 'claude' : m.role}">
+      <div class="cmsg-name">${m.role === 'user' ? '나' : 'Claude'}</div>
+      <div class="cmsg-bubble">${m.content.replace(/\n/g, '<br>')}</div>
+    </div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+function addClaudeMsg(txt) {
+  document.getElementById('chatMsgs').innerHTML = `<div class="cmsg claude"><div class="cmsg-name">Claude</div><div class="cmsg-bubble">${txt}</div></div>`;
+}
+function quickSend(t) { document.getElementById('chatInput').value = t; sendMsg(); }
+
+async function sendMsg() {
+  const id = chatBookId;
+  const inp = document.getElementById('chatInput');
+  const btn = document.getElementById('chatSend');
+  const txt = inp.value.trim();
+  if (!txt || !id) return;
+  const apiKey = getApiKey();
+  if (!apiKey) { alert('API 키를 먼저 입력해주세요. (이야기 탭 상단)'); return; }
+  const book = books.find(b => b.id === id);
+  inp.value = ''; btn.disabled = true;
+  chatHistory.push({ role: 'user', content: txt });
+  renderChat();
+  const msgs = document.getElementById('chatMsgs');
+  const th = document.createElement('div');
+  th.className = 'cmsg claude';
+  th.innerHTML = '<div class="cmsg-name">Claude</div><div class="cmsg-bubble thinking">생각 중...</div>';
+  msgs.appendChild(th); msgs.scrollTop = msgs.scrollHeight;
+  const allSentences = Object.values(book.days || {}).flatMap(d => d.sentences || []);
+  const sys = `당신은 독서 토론 파트너입니다. 사용자가 읽고 있는 책에 대해 깊이 있는 대화를 나눠주세요.\n\n책: "${book.title}" (${book.author})\n상태: ${{ want: '읽고싶음', reading: '읽는 중', done: '완독' }[book.status]}\n${allSentences.length ? `인상 깊은 구절: ${allSentences.join(' / ')}` : ''}${book.review ? `\n독후감: ${book.review}` : ''}\n\n한국어로 자연스럽고 따뜻하게, 2-3문단으로 답해주세요.`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-allow-browser': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: sys, messages: chatHistory.map(m => ({ role: m.role, content: m.content })) })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '응답을 받지 못했어요.';
+    chatHistory.push({ role: 'assistant', content: reply });
+    chats[id] = chatHistory; saveChats();
+    th.remove(); renderChat();
+  } catch(e) {
+    th.remove();
+    chatHistory.push({ role: 'assistant', content: '연결 오류가 발생했어요. API 키를 확인해주세요.' });
+    renderChat();
+  }
+  btn.disabled = false; inp.focus();
+}
+
+function copyChat() {
+  if (!chatBookId || !chatHistory.length) { alert('복사할 대화가 없어요!'); return; }
+  const book = books.find(b => b.id === chatBookId);
+  const txt = `📚 "${book.title}" (${book.author})\n— Claude와의 독서 토론 —\n\n` +
+    chatHistory.map(m => `${m.role === 'user' ? '나' : 'Claude'}: ${m.content}`).join('\n\n');
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '복사됐어요'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '대화 복사'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => alert('복사 실패.'));
+}
+
+// ── 초기화 ────────────────────────────────────
+loadData();
+initApiBanner();
+</script>
+</body>
+</html>
