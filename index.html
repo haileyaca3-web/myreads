@@ -318,23 +318,24 @@ async function doSearch() {
   el.style.display = 'block';
   el.innerHTML = '<div style="padding:14px 18px;font-size:15px;color:#8a9bb0;">검색 중...</div>';
   try {
-    const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=5`);
+    const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`);
     const d = await r.json();
-    if (!d.docs || !d.docs.length) {
+    if (!d.items || !d.items.length) {
       el.innerHTML = '<div style="padding:14px 18px;font-size:15px;color:#8a9bb0;">결과가 없어요.</div>';
       return;
     }
-    el.innerHTML = d.docs.slice(0, 5).map(doc => {
-      const cov = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-S.jpg` : null;
+    el.innerHTML = d.items.map(item => {
+      const info = item.volumeInfo;
+      const cov = info.imageLinks?.thumbnail?.replace('http://','https://') || null;
       const bd = JSON.stringify({
-        id: String(doc.cover_i || doc.key || Date.now()),
-        title: doc.title || '제목 없음',
-        author: doc.author_name ? doc.author_name[0] : '저자 미상',
-        coverId: doc.cover_i || null
+        id: item.id,
+        title: info.title || '제목 없음',
+        author: info.authors ? info.authors[0] : '저자 미상',
+        coverUrl: cov || null
       }).replace(/"/g, '&quot;');
       return `<div class="sr-item" onclick='addBook(${bd})'>
         ${cov ? `<img src="${cov}" class="sr-cover">` : '<div class="sr-cover" style="display:flex;align-items:center;justify-content:center;font-size:20px;">📖</div>'}
-        <div style="flex:1"><div class="sr-title">${doc.title}</div><div class="sr-author">${doc.author_name ? doc.author_name[0] : '저자 미상'}</div></div>
+        <div style="flex:1"><div class="sr-title">${info.title}</div><div class="sr-author">${info.authors ? info.authors[0] : '저자 미상'}</div></div>
         <button class="sr-add">추가</button>
       </div>`;
     }).join('');
@@ -361,9 +362,8 @@ function renderShelf() {
   sh.innerHTML = books.map(b => {
     const lbl = { want: '읽고싶음', reading: '읽는 중', done: '완독' }[b.status];
     const cls = { want: 'b-want', reading: 'b-reading', done: 'b-done' }[b.status];
-    const cov = b.coverId
-      ? `<img src="https://covers.openlibrary.org/b/id/${b.coverId}-M.jpg" style="width:100%;height:100%;object-fit:cover;">`
-      : '<span style="font-size:36px;">📖</span>';
+    const covSrc = b.coverUrl || (b.coverId ? `https://covers.openlibrary.org/b/id/${b.coverId}-M.jpg` : null);
+    const cov = covSrc ? `<img src="${covSrc}" style="width:100%;height:100%;object-fit:cover;">` : '<span style="font-size:36px;">📖</span>';
     return `<div class="book-card" onclick="openBook('${b.id}')">
       <div class="book-cover">${cov}</div>
       <div class="book-info">
@@ -384,9 +384,8 @@ function openBook(id) {
   document.getElementById('mAuthor').textContent = curBook.author;
   document.getElementById('mStatus').value = curBook.status;
   const cov = document.getElementById('mCov');
-  cov.innerHTML = curBook.coverId
-    ? `<img src="https://covers.openlibrary.org/b/id/${curBook.coverId}-M.jpg" style="width:68px;height:98px;object-fit:cover;border-radius:6px;">`
-    : '📖';
+  const covSrc = curBook.coverUrl || (curBook.coverId ? `https://covers.openlibrary.org/b/id/${curBook.coverId}-M.jpg` : null);
+  cov.innerHTML = covSrc ? `<img src="${covSrc}" style="width:68px;height:98px;object-fit:cover;border-radius:6px;">` : '📖';
   const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth(); selDay = null;
   switchTab('cal');
   document.getElementById('overlay').classList.add('open');
